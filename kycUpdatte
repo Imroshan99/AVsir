@@ -1,0 +1,496 @@
+import React, { useState, useEffect, useReducer } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
+import Avatar from "@mui/material/Avatar";
+import MenuItem from "@mui/material/MenuItem";
+import { ProfileAPI } from "../../../apis/ProfileAPI";
+import { notification } from "antd";
+import Swal from "sweetalert2";
+import { config } from "../../../config";
+import { useSelector } from "react-redux";
+import { encrypt, decrypt, publickey } from "../../../helpers/makeHash";
+
+import Logo from "../../../assets/images/svg/kcb_logo.svg";
+import MLogo from "../../../assets/images/svg/kcb_m_logo.svg";
+import Hamburger from "../../../assets/images/svg/kcb_hamburger.svg";
+
+import useHttp from "../../../hooks/useHttp";
+// const pages = ['Send', 'Receive', 'About Us', 'Fees'];
+
+function stringToColor(string) {
+  let hash = 0;
+  let i;
+
+  /* eslint-disable no-bitwise */
+  for (i = 0; i < string.length; i += 1) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  let color = "#";
+
+  for (i = 0; i < 3; i += 1) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += `00${value.toString(16)}`.slice(-2);
+  }
+  /* eslint-enable no-bitwise */
+
+  return color;
+}
+
+function stringAvatar(name) {
+  let nameAr = name.split(" ");
+  let nm = "";
+  if (nameAr.length > 1) {
+    nm = `${name.split(" ")[0][0]}${name.split(" ")[1][0]}`;
+  } else {
+    nm = `${name.split(" ")[0][0]}`;
+  }
+  return {
+    sx: {
+      bgcolor: stringToColor(name),
+    },
+    children: nm,
+  };
+}
+
+export default function Header(props) {
+  // const HOST =
+  //   window.location.hostname === "localhost"
+  //     ? "qaonekcb.remit.in"
+  //     : window.location.hostname;
+  let navigate = useNavigate();
+  let navLocation = useLocation();
+
+  const AuthReducer = useSelector((state) => state);
+  const [anchorElNav, setAnchorElNav] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const [state, setState] = useReducer(
+    (state, newState) => ({ ...state, ...newState }),
+    {
+      firstName: "",
+      lastName: "",
+      clientId: AuthReducer.clientId,
+      groupId: AuthReducer.groupId,
+      sessionId: AuthReducer.sessionId,
+      userID: AuthReducer.userID,
+    }
+  );
+
+  console.log("props", props);
+  const hookProfileApi = useHttp(ProfileAPI.getProfile);
+  useEffect(() => {
+    if (props.appState.isLoggedIn) {
+      let data = {
+        requestId: config.requestId,
+        requestType: "LEAD",
+        channelId: config.channelId,
+        clientId: state.clientId,
+        groupId: state.groupId,
+        sessionId: state.sessionId,
+        ipAddress: "127.0.0.1",
+        userId: AuthReducer.userID,
+      };
+
+      if (config.IS_ENC) {
+        var key = config.key;
+        var iv = config.iv;
+        var body = encrypt(data, key, iv);
+        var pubValue = iv.concat(key);
+        var identifier = publickey(props.appState.publicKey, pubValue);
+
+        var postData = {
+          body: body,
+          identifier: identifier,
+        };
+      } else {
+        var postData = data;
+      }
+
+      // let accessToken = await props.manageRefreshToken();
+      ProfileAPI.getProfile(postData, props.appState.accessToken)
+        .then((res) => {
+          if (config.IS_ENC) {
+            var decode = decrypt(res.data.body, key, iv);
+            var decodeData = JSON.parse(decode);
+          } else {
+            var decodeData = res.data;
+          }
+
+          if (decodeData.status == "S") {
+            setState({
+              firstName: decodeData.firstName,
+              lastName: decodeData.lastName,
+            });
+          } else {
+            notification.error({ message: res.data.errorMessage });
+          }
+        })
+        .catch((error) => {
+          if (error.response.status == 401 || error.response.status == 400) {
+            Swal.fire({
+              title: "Alert",
+              text: error.response.data.errorMessage,
+              icon: "warning",
+              confirmButtonColor: "#2dbe60",
+              allowOutsideClick: false,
+              allowOutsideClick: false,
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // navigate('/signin');
+                window.location.href = "/signin";
+              }
+            });
+          }
+        });
+    }
+  }, [props.appState.isLoggedIn]);
+
+  const getProfileHandler = () => {
+    let payload = {
+      requestType: "GETPROFILE",
+      userId: AuthReducer.userID,
+    };
+    hookProfileApi.sendRequest(payload, (data) => {
+      if (data.status == "S") {
+        setState({
+          firstName: data.firstName,
+          lastName: data.lastName,
+        });
+      } else {
+        notification.error({ message: data.errorMessage });
+      }
+    });
+  };
+
+  const handleOpenNavMenu = (event) => {
+    setAnchorElNav(event.currentTarget);
+  };
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const logout = () => {
+    // navigate('/');
+    window.location.href = "/";
+  };
+  return (
+    <AppBar position="static" className="T3_KCB_header bg-secondary">
+      <div className="Header">
+        <div className="Header-Left">
+          <img
+            onClick={() => navigate("/")}
+            className="img logo"
+            style={{ cursor: "pointer", marginTop: "-3rem" }}
+            height="200%"
+            width="100%"
+            src={Logo}
+            alt="Logo"
+          ></img>
+        </div>
+        <div className="Header-Right">
+          {/* /////////// responsive header button onclick//////// */}
+
+          {/* /////////// end responsive header button onclick//////// */}
+          {/* <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}
+          >
+            LOGO
+          </Typography> */}
+          <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "flex" } }}>
+            {props.appState.isLoggedIn == false &&
+              navLocation.pathname !== "/signin" && (
+                <div className="d-flex align-items-center">
+                  <button
+                    className="header-buttons btn-sec"
+                    onClick={() => {
+                      navigate("/signin");
+                    }}
+                  >
+                    Send Money
+                  </button>
+                  <button
+                    className="header-buttons btn-sec"
+                    onClick={() => {
+                      navigate("/request-money");
+                    }}
+                  >
+                    Request Money
+                  </button>
+                  <button
+                    className="header-buttons btn-sec"
+                    onClick={() => {
+                      navigate("/track-transfer");
+                    }}
+                  >
+                    Track Transfer
+                  </button>
+                  <a
+                    className="header-buttons btn-sec"
+                    href="https://ke.kcbgroup.com/about-us"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    About
+                  </a>
+                  <button
+                    style={{ fontWeight: "600" }}
+                    onClick={() => {
+                      navigate("/signin");
+                      handleCloseNavMenu();
+                    }}
+                    className="btn-prim text-white"
+                    to={"/signin"}
+                  >
+                    Login
+                  </button>
+                  {/* <Link
+                  onClick={handleCloseNavMenu}
+                  className="btn text-white"
+                  to={"/signup"}
+                >
+                  SIGN UP
+                </Link> */}
+                </div>
+              )}
+          </Box>
+          {/* /////////////////// start responsive profile  /////////// */}
+          {props.appState.isLoggedIn == true && (
+            <Box className="d-flex justify-content-end align-items-center">
+              {/* <Link to="/notification-list">
+                <IconButton
+                  size="large"
+                  aria-label="show 17 new notifications"
+                  // color="inherit"
+                >
+                  <NotificationsIcon className="text-white" />
+                  {/* <Badge badgeContent={17} color="error" /> */}
+              {/* </IconButton> */}
+              {/* </Link> */}
+              {/* <span className="d-none d-sm-inline-block px-3">
+                Last Login : {AuthReducer.lastLogin}
+              </span> */}
+              {/* <Tooltip title="Open settings"> */}
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                <Avatar
+                  alt={AuthReducer.userFullName}
+                  {...stringAvatar(AuthReducer.userFullName)}
+                  src="/static/images/avatar/2.jpg"
+                />
+              </IconButton>
+              {/* </Tooltip> */}
+              <Menu
+                sx={{ mt: "45px" }}
+                id="menu-appbar"
+                anchorEl={anchorElUser}
+                anchorOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                open={Boolean(anchorElUser)}
+                onClose={handleCloseUserMenu}
+              >
+                {/* <MenuItem onClick={handleCloseUserMenu}>
+                  <Link to={"/dashboard"} className="text-primary">
+                    Dashboard
+                  </Link>
+                </MenuItem> */}
+                {[
+                  <Link to={"/profile"} className="text-primary">
+                    <MenuItem key="menu1" onClick={handleCloseUserMenu}>
+                      Profile
+                    </MenuItem>
+                  </Link>,
+                  <Link to={"/change-password"} className="text-primary">
+                    <MenuItem key="menu2" onClick={handleCloseUserMenu}>
+                      Change Password
+                    </MenuItem>
+                  </Link>,
+                  // <Link to={"/kyc"} className="text-primary">
+                  //   <MenuItem key="menu10" onClick={handleCloseUserMenu}>
+                  //     Update KYC
+                  //   </MenuItem>
+                  // </Link>,
+                  // <MenuItem key="menu10" onClick={handleCloseUserMenu}>
+                  //   <Link to={"/jumio-page"} className="text-primary">
+                  //     Jumio
+                  //   </Link>
+                  // </MenuItem>,
+                  <Link to={"/my-bank-accounts"} className="text-primary">
+                    <MenuItem key="menu3" onClick={handleCloseUserMenu}>
+                      My Bank Accounts
+                    </MenuItem>
+                  </Link>,
+                  <Link to={"/my-recipient"} className="text-primary">
+                    <MenuItem key="menu4" onClick={handleCloseUserMenu}>
+                      My Recipient
+                    </MenuItem>
+                  </Link>,
+                  <Link to={"/transaction-list"} className="text-primary">
+                    <MenuItem key="menu5" onClick={handleCloseUserMenu}>
+                      Transaction List
+                    </MenuItem>
+                  </Link>,
+                  // <MenuItem key="menu6" onClick={handleCloseUserMenu}>
+                  //   <Link to={"/rate-alert"} className="text-primary">
+                  //     Rate Alert
+                  //   </Link>
+                  // </MenuItem>,
+                  <Link to="#!" className="text-primary" onClick={logout}>
+                    <MenuItem key="menu7" onClick={handleCloseUserMenu}>
+                      Logout
+                    </MenuItem>
+                  </Link>,
+                ]}
+              </Menu>
+            </Box>
+          )}
+          {/* /////////////////// end responsive profile  /////////// */}
+        </div>
+      </div>
+
+      {/* Mobile Header */}
+      <div className="mobile_header">
+        <img
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("/")}
+          src={MLogo}
+        ></img>
+
+        {props.appState.isLoggedIn == false && (
+          <Box
+            sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}
+            justifyContent={"end"}
+          >
+            <img onClick={handleOpenNavMenu} src={Hamburger}></img>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left",
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: "block", md: "none" },
+              }}
+            >
+              <MenuItem key="m1" onClick={handleCloseNavMenu}>
+                <Link className="text-primary" to={"/signin"}>
+                  LOGIN
+                </Link>
+              </MenuItem>
+              <MenuItem key="m1" onClick={handleCloseNavMenu}>
+                <Link className="text-primary" to={"/signin"}>
+                  Send Money
+                </Link>
+              </MenuItem>
+              <MenuItem key="m1" onClick={handleCloseNavMenu}>
+                <Link className="text-primary" to={"/request-money"}>
+                  Request Money
+                </Link>
+              </MenuItem>
+              <MenuItem key="m1" onClick={handleCloseNavMenu}>
+                <Link className="text-primary" to={"/signin"}>
+                  Track Transfer
+                </Link>
+              </MenuItem>
+              <MenuItem key="m1" onClick={handleCloseNavMenu}>
+                <Link className="text-primary" to={"/signin"}>
+                  About
+                </Link>
+              </MenuItem>
+            </Menu>
+          </Box>
+        )}
+        {props.appState.isLoggedIn == true && (
+          <Box
+            sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}
+            justifyContent={"end"}
+          >
+            <img onClick={handleOpenNavMenu} src={Hamburger}></img>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left",
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: "block", md: "none" },
+              }}
+            >
+              <Link to={"/profile"} className="text-primary">
+                <MenuItem key="menu1" onClick={handleCloseUserMenu}>
+                  Profile
+                </MenuItem>
+              </Link>
+              <Link to={"/change-password"} className="text-primary">
+                <MenuItem key="menu2" onClick={handleCloseUserMenu}>
+                  Change Password
+                </MenuItem>
+              </Link>
+              <Link to={"/kyc"} className="text-primary">
+                <MenuItem key="menu10" onClick={handleCloseUserMenu}>
+                  Update KYC
+                </MenuItem>
+              </Link>
+              <Link to={"/my-bank-accounts"} className="text-primary">
+                <MenuItem key="menu3" onClick={handleCloseUserMenu}>
+                  My Bank Accounts
+                </MenuItem>
+              </Link>
+              <Link to={"/my-recipient"} className="text-primary">
+                <MenuItem key="menu4" onClick={handleCloseUserMenu}>
+                  My Recipient
+                </MenuItem>
+              </Link>
+              <Link to={"/transaction-list"} className="text-primary">
+                <MenuItem key="menu5" onClick={handleCloseUserMenu}>
+                  Transaction List
+                </MenuItem>
+              </Link>
+              <Link to="#!" className="text-primary" onClick={logout}>
+                <MenuItem key="menu7" onClick={handleCloseUserMenu}>
+                  Logout
+                </MenuItem>
+              </Link>
+            </Menu>
+          </Box>
+        )}
+      </div>
+    </AppBar>
+  );
+}
