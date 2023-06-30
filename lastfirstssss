@@ -1,0 +1,1826 @@
+import React, { useState, useEffect, useReducer } from "react";
+import { Row, Col } from "react-bootstrap";
+import {
+  Form,
+  Input,
+  Radio,
+  Tabs,
+  Select,
+  notification,
+  Spin,
+  Space,
+  DatePicker,
+} from "antd";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ReceiverAPI } from "../../../../apis/ReceiverAPI";
+import Swal from "sweetalert2";
+import { GuestAPI } from "../../../../apis/GuestAPI";
+import { config } from "../../../../config";
+import { useSelector } from "react-redux";
+import { PencilSquare } from "react-bootstrap-icons";
+
+import OTPBox from "../../../../containers/OTPBox";
+import { ProfileAPI } from "../../../../apis/ProfileAPI";
+
+import moment from "moment";
+import { inputValidations } from "../../../../services/validations/validations";
+import useHttp from "../../../../hooks/useHttp";
+
+const { TabPane } = Tabs;
+const { Option } = Select;
+
+export default function EditRecipient(props) {
+  const [form] = Form.useForm();
+  const [form1] = Form.useForm();
+  const AuthReducer = useSelector((state) => state);
+  const ConfigReducer = useSelector((state) => state);
+  const AddRecipientFormConfig =
+    ConfigReducer.groupIdSettings.recipientModule.AddRecipientForm;
+  const [loading, setLoader] = useState(false);
+  const [isICICI, setIsICICI] = useState(true);
+  let navigate = useNavigate();
+  const location = useLocation();
+
+  const [state, setState] = useReducer(
+    (state, newState) => ({ ...state, ...newState }),
+    {
+      clientId: AuthReducer.clientId,
+      groupId: AuthReducer.groupId,
+      twofa: AddRecipientFormConfig?.twoFA
+        ? AddRecipientFormConfig.twoFA
+        : AuthReducer.twofa,
+      // twofa:   AuthReducer.twofa,
+      sessionId: AuthReducer.sessionId,
+      userID: AuthReducer.userID,
+      nationalities: [],
+      stateCities: [],
+      _showOTPBOX: false,
+      showConfirmAddRecipient: false,
+      isConfirmAddRecipient: false,
+      formData: {},
+      editData: {},
+      verificationToken: "",
+      isOTPVerfied: false,
+      isModalVisible: false,
+      otpType: "RA",
+
+      branchCode: "",
+      bankBranch: "",
+      bankAddress: "",
+      bankState: "",
+      bankCity: "",
+      bankName: "",
+      isSameBank: "",
+      bankCode: "",
+      branchCode: "",
+      bankId: "",
+      bankCountry: "",
+      isSelectedIFSC: false,
+      bankLists: [],
+      cityLists: [],
+      branchLists: [],
+      phoneCodes: [],
+      occupationLists: [],
+      relationshipLists: [],
+      deliveryOptionsList: [],
+      deliveryOption: "",
+      stateLists: [],
+      dob: "",
+
+      redirectPage: "",
+      redirectPageState: [],
+      uniqueIdentifierLists: [],
+    }
+  );
+
+  const hookGetNationality = useHttp(GuestAPI.getNationality);
+  const hookGetCountryPhoneCodes = useHttp(GuestAPI.getCountryPhoneCodes);
+  const hookGetOccupationLists = useHttp(GuestAPI.occupationLists);
+  const hookGetRelationshipLists = useHttp(GuestAPI.relationshipLists);
+  const hookGetDeliveryOptions = useHttp(GuestAPI.deliveryOptions);
+  const hookGetCountryStates = useHttp(GuestAPI.countryStates);
+  const hookGetStateCities = useHttp(GuestAPI.stateCities);
+  const hookGetBankBranchData = useHttp(GuestAPI.bankBranchData);
+  const hookGetUniqueIdentifierList = useHttp(GuestAPI.uniqueIdentifierList);
+
+  const hookGetBankLists = useHttp(ReceiverAPI.bankLists);
+  const hookGetBankStateCities = useHttp(ReceiverAPI.bankStateCities);
+  const hookGebankBranches = useHttp(ReceiverAPI.bankBranches);
+  const hookCheckDuplicateReceiver = useHttp(
+    ReceiverAPI.checkDuplicateReceiver
+  );
+  const hookEditReceiver = useHttp(ReceiverAPI.editReceiver);
+  const hookSendOtp = useHttp(ProfileAPI.sendOTP);
+  const hookAddReceiver = useHttp(ReceiverAPI.addReceiver);
+
+  const editRecipientData = location?.state?.editRecipientData;
+
+  useEffect(() => {
+    if (editRecipientData) {
+      console.log("Edit Recepient Data =>>>>>>", editRecipientData);
+      setState({
+        deliveryOption: editRecipientData.recvMode,
+      });
+      form1.setFieldsValue({
+        deliveryOptions: editRecipientData.recvMode,
+        accountNo: editRecipientData.accountNo,
+        accConNum: editRecipientData.accountNo,
+        bankName: editRecipientData.bankName,
+        bankCity: editRecipientData.bankCity,
+        branch: editRecipientData.bankBranch,
+        branchCode: editRecipientData.branchCode,
+        voomMobNo: editRecipientData.accountNo,
+        voomConMobNo: editRecipientData.accountNo,
+
+        firstName: editRecipientData.firstName,
+        lastName: editRecipientData.lastName,
+        nickName: editRecipientData.nickName,
+        mobileNo: editRecipientData.mobileNo,
+        dob: moment(new Date(editRecipientData.dob)),
+        emailId: editRecipientData.emailId,
+        relationship: editRecipientData.relationship,
+        address1: editRecipientData.address1,
+        address2: editRecipientData.address2,
+        zipcode: editRecipientData.zipcode,
+        // nationality: editRecipientData.nationality,
+        city: editRecipientData.city,
+        state: editRecipientData.state,
+
+        idtype: editRecipientData.recvUniqueIdType,
+        id_number: editRecipientData.recvUniqueIdValue,
+      });
+    }
+  }, []);
+
+  useEffect(async () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    getUniqueIdentifierNames();
+    getDeliveryOptions();
+    getNationality();
+    getCoutryCodes();
+    // getOccupationLists();
+    getRelationshipLists();
+    getStateLists();
+    // if (state.groupId == "KCB") {
+    //     onChangeNationality("IN")
+    // }
+    // form.setFieldsValue({
+    //     country: "India"
+    // })
+    form1.setFieldsValue({
+      country: "Kenya",
+    });
+    setState({
+      redirectPage: location.state?.fromPage,
+      redirectPageState: location.state?.fromPageState,
+    });
+    // console.log('TWOFA', AddRecipientFormConfig)
+  }, []);
+
+  useEffect(async () => {
+    if (!state.isSelectedIFSC) {
+      getBankList();
+    }
+  }, [state.isSelectedIFSC]);
+
+  const getNationality = async () => {
+    const payload = {
+      requestType: "NATIONALITYLIST",
+      keyword: "",
+    };
+
+    setLoader(true);
+    hookGetNationality.sendRequest(payload, function (data) {
+      if (data.status == "S") {
+        const nationalitiesData = data.responseData;
+        setState({ nationalities: nationalitiesData });
+        const naraay= nationalitiesData.filter(item => item.nationality === editRecipientData.nationality)
+        form1.setFieldsValue({
+          nationality : naraay[0]?.countryCode
+        })
+      } else {
+        notification.error({ message: data.data.errorMessage });
+      }
+      setLoader(false);
+    });
+  };
+  const getUniqueIdentifierNames = async () => {
+    let payload = {
+      requestType: "UNNAMESLIST",
+      idFor: "RECV",
+    };
+
+    setLoader(true);
+    hookGetUniqueIdentifierList.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({ uniqueIdentifierLists: data.responseData });
+      }
+    });
+    setLoader(false);
+  };
+  const getCoutryCodes = async () => {
+    const payload = {
+      requestType: "COUNTRYPHONECODE",
+    };
+    setLoader(true);
+    hookGetCountryPhoneCodes.sendRequest(payload, function (data) {
+      if (data.status == "S") {
+        // setState({ phoneCodes: data.responseData });
+        let _recvCountryCode = data.responseData.filter(
+          (item) => item.countryCode === AuthReducer.recvCountryCode
+        );
+        // console.log("conntryList", _recvCountryCode[0].countryCode)
+        setState({
+          phoneCodes: data.responseData,
+          // mobileCountryCode: _recvCountryCode[0].countryPhoneCode,
+        });
+        form1.setFieldsValue({
+          mobileCountryCode: _recvCountryCode[0].countryPhoneCode,
+        });
+        setLoader(false);
+      }
+    });
+  };
+
+  const getOccupationLists = async () => {
+    let payload = {
+      requestType: "LEAD",
+    };
+    setLoader(true);
+    hookGetOccupationLists.sendRequest(payload, function (data) {
+      if (data.status == "S") {
+        setState({ occupationLists: data.responseData });
+      }
+      setLoader(false);
+    });
+  };
+
+  const getRelationshipLists = async () => {
+    let payload = {
+      requestType: "RELAIONSHIPLISTS",
+    };
+
+    setLoader(true);
+    hookGetRelationshipLists.sendRequest(payload, function (data) {
+      if (data.status == "S") {
+        setState({ relationshipLists: data.responseData });
+      }
+      setLoader(false);
+    });
+  };
+
+  const getDeliveryOptions = async () => {
+    let payload = {
+      requestType: "RECVMODE",
+      countryCode: AuthReducer.recvCountryCode,
+    };
+    setLoader(true);
+    hookGetDeliveryOptions.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({ deliveryOptionsList: data.responseData });
+        setLoader(false);
+      }
+    });
+  };
+
+  const getStateLists = async () => {
+    let payload = {
+      requestType: "STATELIST",
+      countryCode: AuthReducer.recvCountryCode,
+      keyword: "",
+    };
+    setLoader(true);
+    hookGetCountryStates.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({ stateLists: data.responseData });
+        setLoader(false);
+      }
+    });
+  };
+
+  const onChangeNationality = async (countryCode) => {
+    const payload = {
+      requestType: "NATIONALITYLIST",
+      keyword: "",
+      countryCode: countryCode,
+    };
+
+    setLoader(true);
+    hookGetStateCities.sendRequest(payload, function (data) {
+      if (data.status == "S") {
+        setState({ stateCities: data.responseData });
+      } else {
+        notification.error({ message: data.data.errorMessage });
+        setState({ stateCities: [] });
+        if (isICICI) {
+          form.setFieldsValue({ cist: null });
+        } else {
+          form1.setFieldsValue({ cist: null });
+        }
+      }
+      setLoader(false);
+    });
+  };
+
+  const onChangeIFSCCode = async (e) => {
+    if (e.target.value.length == 11) {
+      const payload = {
+        requestType: "BANKBRANCHDATA",
+        branchCode: e.target.value,
+      };
+
+      setLoader(true);
+      hookGetBankBranchData.sendRequest(payload, function (data) {
+        if (data.status == "S") {
+          notification.success({ message: data.message });
+          setState({
+            branchCode: data.branchCode,
+            bankBranch: data.bankBranch,
+            bankAddress: data.bankAddress,
+            bankState: data.bankState,
+            bankCity: data.bankCity,
+            bankName: data.bankName,
+            bankId: data.bankId,
+            bankCountry: data.bankCountry,
+          });
+        } else {
+          // notification.error({ message: res.data.errorMessage });
+          form1.setFields([
+            { name: "IFSCCode", errors: [data.data.errorMessage] },
+          ]);
+          setState({
+            branchCode: "",
+            bankBranch: "",
+            bankAddress: "",
+            bankState: "",
+            bankCity: "",
+            bankName: "",
+            bankId: "",
+            bankCountry: "",
+          });
+        }
+      });
+      setLoader(false);
+    } else {
+      setState({
+        branchCode: "",
+        bankBranch: "",
+        bankAddress: "",
+        bankState: "",
+        bankCity: "",
+        bankName: "",
+        bankId: "",
+        bankCountry: "",
+      });
+    }
+  };
+
+  const getBankList = async (e) => {
+    const payload = {
+      requestType: "BANKLIST",
+      countryCode: AuthReducer.recvCountryCode,
+      userId: state.userID,
+    };
+
+    setLoader(true);
+    hookGetBankLists.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({
+          bankLists: data.responseData,
+        });
+        setLoader(false);
+      }
+    });
+  };
+
+  const onSetectBank = async (row) => {
+    const bankName = row.value;
+    let bankCode = row.label.props.bankCode;
+    let isSameBank = row.label.props.isSameBank;
+    setState({
+      bankName: bankName,
+      bankCode: bankCode,
+      isSameBank: isSameBank,
+    });
+    form1.setFieldsValue({
+      bankName: bankName,
+      cityName: undefined,
+      branch: undefined,
+      bankCity: undefined,
+      branchCode: undefined,
+    });
+    const payload = {
+      requestType: "BankStateCities",
+      countryCode: AuthReducer.recvCountryCode,
+      state: "",
+      bankName: bankName,
+      search: "",
+    };
+
+    setLoader(true);
+    hookGetBankStateCities.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({
+          cityLists: data.responseData,
+        });
+        setLoader(false);
+      }
+    });
+  };
+
+  const onSetectCity = async (cityName) => {
+    setState({ bankCity: cityName });
+    const payload = {
+      requestType: "BANKBRANCHES",
+      countryCode: AuthReducer.recvCountryCode,
+      bankCode: state.bankCode,
+      bankName: state.bankName,
+      cityCode: "",
+      stateCode: "",
+      city: cityName,
+      keyword: "",
+    };
+
+    setLoader(true);
+    hookGebankBranches.sendRequest(payload, function (data) {
+      if (data.status === "S") {
+        setState({
+          branchLists: data.responseData,
+        });
+        setLoader(false);
+      }
+    });
+  };
+
+  const onSetectBranch = async (value) => {
+    let branch = JSON.parse(value);
+    console.log(branch);
+    setState({
+      branchCode: branch.branchCode,
+      bankBranch: branch.branchName,
+      bankAddress: branch.bankAddress,
+      bankState: branch.bankState,
+      bankCity: branch.bankCity,
+      bankName: branch.bankName,
+      bankId: branch.bankId,
+      bankCountry: branch.bankCountry,
+
+      // bankCode: bankCode,
+      // branchName: branchName
+    });
+
+    form1.setFieldsValue({
+      branchCode: branch.branchCode,
+      branch: branch.branchName,
+    });
+    // bankAddress: "HDFC BANK LTD WORD NO.7, A.T.ROAD NEAR MALIGAON CHARIYALI GUWAHATI"
+    // bankCity: "GUWAHATI"
+    // bankCode: "HDFC"
+
+    // bankCountry: "IN"
+    // bankName: "HDFC BANK LTD"
+    // bankState: "ASSAM"
+    // branchCode: "HDFC0002282"
+    // branchName: "MALIGAON"
+  };
+
+  const onFinish = async (value) => {
+    console.log("my values=>>>>>>", value);
+    
+    if (value.deliveryOptions === "VOOMA") {
+      value.bankName = "Vooma Wallet";
+    }
+    if (value.deliveryOptions === "MPESA") {
+      value.bankName = "MPesa Wallet";
+    }
+    let formData = {
+      requestType: "RECEIVERADD",
+      receiverType: "INDIVIDUAL",
+      firstName: value.firstName,
+      middleName: "",
+      lastName: value.lastName,
+      nickName: value.nickName,
+      accountNo: value.accountNo,
+      relationship: "SELF",
+      gender: "M",
+      dob: state.dob ? state.dob : "",
+
+      address1: value.address1 ? value.address1.trim() : "Shadol,Madha Pradesh",
+      address2: value.address2 ? value.address2.trim() : "bhopal",
+      zipcode: value.zipcode ? value.zipcode : "50413",
+      state: value.state ? value.state : "M.P",
+      stateOther: "",
+      city: value.city,
+      nationality: value.nationality,
+      cityOther: "",
+      emailId: value.emailId ? value.emailId : "test@test.com",
+
+      mobileCountryCode: value.mobileCountryCode ? value.mobileCountryCode : "",
+      mobileNo: value.mobileNo ? value.mobileNo : "",
+
+      altPhone: "",
+      fax: "",
+
+      IFSCCode: isICICI == true ? "" : value.IFSCCode,
+      recvMode: value.deliveryOptions ? value.deliveryOptions : "DC",
+      accountHolderName: `${value.firstName} ${value.lastName}`,
+
+      accountType: "S",
+      bankCode: state.bankCode,
+      bankName: value.bankName,
+      accountNo: value.accountNo,
+      branchCode: value.branchCode,
+      bankBranch: value.branch,
+      bankAddress: null,
+      bankState: value.state ? value.state : editRecipientData.bankState,
+      bankCity: value.bankCity,
+      isSameBank: "N",
+
+      nearestBranchCode: "",
+      nearestBranch: "",
+      recvUniqueIdType: value.idtype,
+      recvUniqueIdValue: value.id_number,
+
+      interBankCode: "",
+      interBank: "",
+      interAccountNo: "",
+      interAccountType: "",
+      interBranchCode: "",
+      interBankBranch: "",
+      interBankAddress: "",
+      interBankCountry: "",
+
+      recvCountry: AuthReducer.recvCountryCode,
+      recvCurrency: AuthReducer.recvCurrencyCode,
+      purpose: "",
+      purposeCode: "",
+      // purpose: "SAVINGS",
+      // purposeCode: "P1301",
+
+      remark: "",
+      // isSameBank: isICICI ? "Y" : "N",
+      //   isSameBank: state.isSameBank,
+      twofa: state.twofa,
+      userId: state.userID,
+      recordToken: editRecipientData.recordToken,
+    };
+
+    setLoader(true);
+    hookCheckDuplicateReceiver.sendRequest(formData, function (data) {
+      if (data.status == "S") {
+        setState({ editData: formData, showConfirmAddRecipient: true });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        notification.error({ message: data.errorMessage });
+      }
+      setLoader(false);
+    });
+  };
+
+  const onClickConfirmAddRecipientAndSendOTP = async () => {
+    if (state.twofa === "Y") {
+      const payload = {
+        requestType: "SENDOTP",
+        otpType: state.otpType,
+        userId: state.userID,
+        otpOption: "SM",
+      };
+
+      setLoader(true);
+      hookSendOtp.sendRequest(payload, function (data) {
+        setLoader(false);
+        if (data.status == "S") {
+          notification.success({ message: data.message });
+          setState({
+            verificationToken: data.verificationToken,
+            _showOTPBOX: true,
+            isModalVisible: true,
+          });
+        } else {
+          notification.error({ message: data.errorMessage });
+        }
+      });
+    } else {
+      var editPostData = state.editData;
+      setLoader(true);
+      hookEditReceiver.sendRequest(editPostData, function (data) {
+        setLoader(false);
+        if (data.status == "S") {
+          notification.success({ message: data.message });
+          if (state.redirectPage === "NEW_TRANSACTION") {
+            navigate("/new-transaction", { state: state.redirectPageState });
+          } else {
+            navigate("/my-recipient");
+          }
+        } else {
+          notification.error({ message: data.errorMessage });
+          let errors = [];
+          data.errorList.forEach((error, i) => {
+            let errorData = {
+              name: error.field,
+              errors: [error.error],
+            };
+            errors.push(errorData);
+          });
+
+          if (errors.length > 0) form.setFields(errors);
+        }
+      });
+    }
+  };
+
+  const saveReceiver = async (verifiedToken) => {
+    var postData = state.formData;
+    state.formData.verifiedToken = verifiedToken;
+    setLoader(true);
+    hookAddReceiver.sendRequest(postData, function (data) {
+      if (data.status == "S") {
+        notification.success({ message: data.message });
+        if (state.redirectPage === "NEW_TRANSACTION") {
+          navigate("/new-transaction", { state: state.redirectPageState });
+        } else {
+          navigate("/my-recipient");
+        }
+      } else {
+        notification.error({ message: data.data.errorMessage });
+        let errors = [];
+        data.data.errorList.forEach((error, i) => {
+          let errorData = {
+            name: error.field,
+            errors: [error.error],
+          };
+          errors.push(errorData);
+        });
+
+        if (errors.length > 0) form.setFields(errors);
+      }
+      setLoader(false);
+    });
+  };
+
+  const onChangeDeliveryOptionHandler = (value) => {
+    let bankName = value === "VOOMA" ? "Vooma wallet" : "";
+    setState({
+      deliveryOption: value,
+      bankName: bankName,
+    });
+  };
+
+  return (
+    <div className="mt-md-5 mt-sm-5 bg_gradient container">
+      <div className="T3_container">
+        {/* <button onClick={(e)=> {
+         navigate("/new-transaction", { state: state.redirectPageState });
+      }}>test</button> */}
+        {state._showOTPBOX && (
+          <OTPBox
+            state={state}
+            setState={setState}
+            saveReceiver={saveReceiver}
+            otpType={state.otpType}
+            useFor="addRecipient"
+            appState={props.appState}
+          />
+        )}
+
+        <Spin spinning={loading}>
+          {!state.showConfirmAddRecipient ? (
+            <Row>
+              <Col lg={8} md={10}>
+                {/* <div>
+                  <h5>FRAUD ALERT</h5>
+                  <p>
+                    Don't fall victim to a scam. Fraudsters pretend to be people
+                    you trust, sound and act like the bank, police or even your
+                    internet provider. If you have any doubts contact the
+                    company directly using an email or phone number that you can
+                    verify as genuine. Once you make a payment, it's almost
+                    impossible to get the money back.
+                  </p>
+                  <p>Where should the recipient receive the money?</p>
+                </div> */}
+                <div className="mb-4 ">
+                  <div className="mb-4 title">Edit Receipent</div>
+                  <Form
+                    form={form1}
+                    onFinish={onFinish}
+                    initialValues={{
+                      mobileCountryCode: "254",
+                    }}
+                  >
+                    <Row className="justify-content-center">
+                      <Col md={12}>
+                        <div className="">
+                          <label className="form-label">Delivery Options</label>
+                          <Form.Item
+                            className="form-item"
+                            name="deliveryOptions"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please select Delivery Options.",
+                              },
+                            ]}
+                          >
+                            <Select
+                              // labelInValue
+                              size="large"
+                              className="w-100"
+                              disabled={true}
+                              placeholder="Select Delivery Options"
+                              onChange={onChangeDeliveryOptionHandler}
+                            >
+                              {state.deliveryOptionsList.map((value, i) => {
+                                return (
+                                  <Option key={i} value={value.recvModeCode}>
+                                    {value.recvMode}
+                                  </Option>
+                                );
+                              })}
+                            </Select>
+                          </Form.Item>
+                        </div>
+                      </Col>
+
+                      {state.deliveryOption === "DC" && (
+                        <>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Account Number
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="accountNo"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message:
+                                      "Please input your Account Number.",
+                                  },
+                                  {
+                                    min: 3,
+                                    message:
+                                      "Account Number should be between 3 and 40 digits",
+                                  },
+                                  {
+                                    max: 40,
+                                    message:
+                                      "Account Number should be between 3 and 40 digits",
+                                  },
+                                  {
+                                    pattern: /^[0-9\b]+$/,
+                                    message: "Only Numbers allowed",
+                                  },
+                                  // {
+                                  //   min: 12,
+                                  //   max: 12,
+                                  //   message: "Account number must be 12 digit.",
+                                  // },
+                                ]}
+                              >
+                                <Input.Password
+                                  size="large"
+                                  placeholder="Enter your Account Number"
+                                  onPaste={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  onCopy={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  visibilityToggle={false}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Confirm Account Number
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="accConNum"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message:
+                                      "Please input your Confirm Account Number.",
+                                  },
+                                  {
+                                    pattern: /^[0-9\b]+$/,
+                                    message: "Only Numbers allowed",
+                                  },
+                                  ({ getFieldValue }) => ({
+                                    validator(rule, value) {
+                                      if (
+                                        !value ||
+                                        getFieldValue("accountNo") === value
+                                      ) {
+                                        return Promise.resolve();
+                                      }
+                                      return Promise.reject(
+                                        "The two account number that you entered do not match!"
+                                      );
+                                    },
+                                  }),
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="Enter your Confirm Account Number"
+                                  onPaste={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  onCopy={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          {AddRecipientFormConfig.recipientBankBranchRadio && (
+                            <Col md={12}>
+                              <label className="form-label">
+                                Receipent's bank Branch
+                              </label>
+                              <Form.Item className="form-item">
+                                <Radio.Group name="isIFSC">
+                                  <Space direction="Horizontaly">
+                                    <Radio
+                                      value="Y"
+                                      onClick={(e) => {
+                                        setState({ isSelectedIFSC: true });
+                                      }}
+                                    >
+                                      IFSC
+                                    </Radio>
+                                    <Radio
+                                      value="N"
+                                      onClick={() => {
+                                        setState({ isSelectedIFSC: false });
+                                        getBankList();
+                                      }}
+                                    >
+                                      LOCATION
+                                    </Radio>
+                                  </Space>
+                                </Radio.Group>
+                              </Form.Item>
+                            </Col>
+                          )}
+
+                          {state.isSelectedIFSC ? (
+                            <Col md={12}>
+                              <div className="">
+                                <label className="form-label">IFSC Code</label>
+                                <Form.Item
+                                  className="form-item"
+                                  name="IFSCCode"
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: "Please input your IFSC Code.",
+                                    },
+                                    {
+                                      min: 11,
+                                      max: 11,
+                                      message: "Please input valid IFSC Code.",
+                                    },
+                                  ]}
+                                  onChange={onChangeIFSCCode}
+                                >
+                                  <Input
+                                    size="large"
+                                    placeholder="Enter your IFSC Code"
+                                    maxLength={11}
+                                  />
+                                </Form.Item>
+                                <p className="text-primary">
+                                  {state.bankAddress}
+                                </p>
+                              </div>
+                            </Col>
+                          ) : (
+                            <>
+                              <Col md={12}>
+                                <div className="">
+                                  <label className="form-label">
+                                    Bank Name
+                                  </label>
+                                  <Form.Item
+                                    className="form-item"
+                                    name="bankName"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message: "Please select your Bank.",
+                                      },
+                                    ]}
+                                  >
+                                    <Select
+                                      size="large"
+                                      className="w-100"
+                                      labelInValue
+                                      placeholder="Select Bank"
+                                      onChange={onSetectBank}
+                                    >
+                                      {state.bankLists.map((bank, i) => {
+                                        return (
+                                          <Option key={i} value={bank.bankName}>
+                                            <span
+                                              bankCode={bank.bankCode}
+                                              isSameBank={bank.isSameBank}
+                                            >
+                                              {bank.bankName}
+                                            </span>
+                                          </Option>
+                                        );
+                                      })}
+                                    </Select>
+                                  </Form.Item>
+                                </div>
+                              </Col>
+                              <Col md={12}>
+                                <div className="">
+                                  <label className="form-label">City</label>
+                                  <Form.Item
+                                    className="form-item"
+                                    name="bankCity"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message: "Please select your City.",
+                                      },
+                                    ]}
+                                  >
+                                    <Select
+                                      size="large"
+                                      className="w-100"
+                                      placeholder="Select City"
+                                      showSearch
+                                      onChange={onSetectCity}
+                                    >
+                                      {state.cityLists.map((city, i) => {
+                                        return (
+                                          <Option key={i} value={city.city}>
+                                            {city.city}
+                                          </Option>
+                                        );
+                                      })}
+                                    </Select>
+                                  </Form.Item>
+                                </div>
+                              </Col>
+                              <Col md={6}>
+                                <div className="">
+                                  <label className="form-label">Branch</label>
+                                  <Form.Item
+                                    className="form-item"
+                                    name="branch"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message: "Please select your Branch.",
+                                      },
+                                    ]}
+                                  >
+                                    <Select
+                                      size="large"
+                                      className="w-100"
+                                      placeholder="Select Branch"
+                                      showSearch
+                                      onChange={onSetectBranch}
+                                    >
+                                      {state.branchLists.map((branch, i) => {
+                                        return (
+                                          <Option
+                                            key={i}
+                                            value={JSON.stringify(branch)}
+                                          >
+                                            {branch.branchName}
+                                          </Option>
+                                        );
+                                      })}
+                                    </Select>
+                                  </Form.Item>
+                                </div>
+                              </Col>
+                              <Col md={6}>
+                                <label className="form-label">
+                                  Branch Code
+                                </label>
+                                <Form.Item
+                                  className="form-item"
+                                  name="branchCode"
+                                >
+                                  <Input
+                                    size="large"
+                                    placeholder="Branch Code"
+                                    readOnly={true}
+                                  />
+                                </Form.Item>
+                              </Col>
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {state.deliveryOption === "VOOMA" && (
+                        <>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Mobile Number (VOOMA Wallet)
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="voomMobNo"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Mobile Number.",
+                                  },
+                                  {
+                                    min: 9,
+                                    max: 12,
+                                    message:
+                                      "Mobile Number should be between 9 to 12 digits",
+                                  },
+                                  {
+                                    pattern: /^[0-9\b]+$/,
+                                    message: "Only Numbers allowed",
+                                  },
+                                  // {
+                                  //   min: 12,
+                                  //   max: 12,
+                                  //   message: "Account number must be 12 digit.",
+                                  // },
+                                ]}
+                              >
+                                <Input.Password
+                                  size="large"
+                                  placeholder="Enter your Mobile Number (VOOMA Wallet)"
+                                  maxLength={12}
+                                  onPaste={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  onCopy={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  visibilityToggle={false}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Confirm Mobile Number (VOOMA Wallet)
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="voomConMobNo"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message:
+                                      "Please input your Confirm Mobile Number.",
+                                  },
+                                  {
+                                    min: 9,
+                                    max: 12,
+                                    message:
+                                      "Mobile Number should be between 9 to 12 digits",
+                                  },
+                                  {
+                                    pattern: /^[0-9\b]+$/,
+                                    message: "Only Numbers allowed",
+                                  },
+                                  ({ getFieldValue }) => ({
+                                    validator(rule, value) {
+                                      if (
+                                        !value ||
+                                        getFieldValue("accountNo") === value
+                                      ) {
+                                        return Promise.resolve();
+                                      }
+                                      return Promise.reject(
+                                        "The two account number that you entered do not match!"
+                                      );
+                                    },
+                                  }),
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="Enter your Confirm Mobile Number (VOOMA Wallet)"
+                                  maxLength={12}
+                                  onPaste={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                  onCopy={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                  }}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </>
+                      )}
+
+                      <Col md={6}>
+                        <div className="">
+                          <label className="form-label">First Name</label>
+                          <Form.Item
+                            className="form-item"
+                            name="firstName"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please input your First Name.",
+                              },
+                              {
+                                min: 3,
+                                message:
+                                  "First Name should be between 3 and 40 characters",
+                              },
+                              {
+                                max: 40,
+                                message:
+                                  "First Name should be between 3 and 40 characters",
+                              },
+                            ]}
+                          >
+                            <Input
+                              size="large"
+                              placeholder="Enter your First Name"
+                            />
+                          </Form.Item>
+                        </div>
+                      </Col>
+                      <Col md={6}>
+                        <div className="">
+                          <label className="form-label">Last Name</label>
+                          <Form.Item
+                            className="form-item"
+                            name="lastName"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please input your Last Name.",
+                              },
+                              {
+                                min: 3,
+                                message:
+                                  "Last Name should be between 3 and 40 characters",
+                              },
+                              {
+                                max: 40,
+                                message:
+                                  "Last Name should be between 3 and 40 characters",
+                              },
+                            ]}
+                          >
+                            <Input
+                              size="large"
+                              placeholder="Enter your Last Name"
+                            />
+                          </Form.Item>
+                        </div>
+                      </Col>
+
+                      <Col md={12}>
+                        <div className="">
+                          <label className="form-label">Nick Name</label>
+                          <Form.Item
+                            className="form-item"
+                            name="nickName"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please input your Nick Name.",
+                              },
+                              {
+                                min: 3,
+                                message:
+                                  "Nick Name should be between 3 and 40 characters",
+                              },
+                              {
+                                max: 40,
+                                message:
+                                  "Nick Name should be between 3 and 40 characters",
+                              },
+                              {
+                                pattern: /^[a-zA-Z0-9]+$/,
+                                message: "No Special Chars",
+                              },
+                            ]}
+                          >
+                            <Input
+                              size="large"
+                              placeholder="Enter your Nick Name"
+                            />
+                          </Form.Item>
+                        </div>
+                      </Col>
+
+                      <Col md={12}>
+                        <Row className="justify-content-center">
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">Country Code</label>
+                              <Form.Item
+                                className="form-item"
+                                name="mobileCountryCode"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please select your Country Code.",
+                                  },
+                                ]}
+                              >
+                                <Select
+                                  size="large"
+                                  className="w-100"
+                                  placeholder="Select Country Code"
+                                  disabled={true}
+                                >
+                                  {state.phoneCodes.map((phoneCode, i) => {
+                                    return (
+                                      <Option
+                                        key={i}
+                                        value={phoneCode.countryPhoneCode}
+                                      >{`(${phoneCode.countryPhoneCode}) ${phoneCode.countryName}`}</Option>
+                                    );
+                                  })}
+                                </Select>
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Mobile Number
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="mobileNo"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Mobile Number.",
+                                  },
+                                  ...inputValidations.mobileNumber(
+                                    AuthReducer.recvCountryCode
+                                  ),
+                                  // { pattern: new RegExp("^[6]{1}[0-9]*$"), message: "Mobile number must start with 6" }
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="123456789"
+                                  maxLength={10}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </Row>
+                      </Col>
+                      {state.groupId == "KCB" && (
+                        <>
+                          {/* <Col md={12}>
+                            <Row className="justify-content-center">
+                              <Col md={6}>
+                                <div className="">
+                                  <label className="form-label">
+                                    Area Code (Optional)
+                                  </label>
+                                  <Form.Item
+                                    className="form-item"
+                                    name="areaCode"
+                                  >
+                                    <Input
+                                      size="large"
+                                      placeholder="Enter your Area Code"
+                                    />
+                                  </Form.Item>
+                                </div>
+                              </Col>
+                              <Col md={6}>
+                                <div className="">
+                                  <label className="form-label">
+                                    Phone/Landline Number (Optional)
+                                  </label>
+                                  <Form.Item
+                                    className="form-item"
+                                    name="landLineNumber"
+                                  >
+                                    <Input
+                                      size="large"
+                                      placeholder="Enter your Phone/Landline Number"
+                                    />
+                                  </Form.Item>
+                                </div>
+                              </Col>
+                            </Row>
+                          </Col> */}
+                          <Col md={6}>
+                            <label className="form-label">
+                              <span className="red_ast">*</span>ID Type
+                            </label>
+                            <Form.Item
+                              className="form-item"
+                              name="idtype"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Select ID Type.",
+                                },
+                              ]}
+                            >
+                              <Select
+                                placeholder="Select ID Type"
+                                size="large"
+                                showSearch
+                              >
+                                {state.uniqueIdentifierLists.map((uiRow, i) => {
+                                  return (
+                                    <Option
+                                      key={i}
+                                      value={uiRow.docType}
+                                    >{`${uiRow.docName}`}</Option>
+                                  );
+                                })}
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col md={6}>
+                            <label className="form-label">
+                              <span className="red_ast">*</span>ID Number
+                            </label>
+                            <Form.Item
+                              className="form-item"
+                              name="id_number"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Enter ID Number.",
+                                },
+                                {
+                                  min: 3,
+                                  message: "Minimum 3 Digits",
+                                },
+                                {
+                                  max: 20,
+                                  message: "Maximum 20 Digits",
+                                },
+                                {
+                                  pattern: /^[A-Za-z0-9 ]+$/,
+                                  message: "Special Characters not allowed",
+                                },
+                              ]}
+                            >
+                              <Input size="large" placeholder="ID Number" />
+                            </Form.Item>
+                          </Col>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">
+                                Date Of Birth
+                              </label>
+                              <Form.Item
+                                className="form-item"
+                                name="dob"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Date Of Birth.",
+                                  },
+                                ]}
+                              >
+                                <DatePicker
+                                  size="large"
+                                  className="w-100"
+                                  defaultPickerValue={moment().subtract(
+                                    18,
+                                    "years"
+                                  )}
+                                  disabledDate={(d) =>
+                                    !d ||
+                                    d.isAfter(moment().subtract(18, "years")) ||
+                                    d.isSameOrBefore("1900-01-01")
+                                  }
+                                  onChange={(value, dateString) => {
+                                    value !== null
+                                      ? setState({ dob: dateString })
+                                      : setState({ dob: "" });
+                                  }}
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">Email ID</label>
+                              <Form.Item
+                                className="form-item"
+                                name="emailId"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Email ID.",
+                                  },
+                                  {
+                                    type: "email",
+                                    message: "Please input valid Email ID.",
+                                  },
+                                  {
+                                    pattern:
+                                      /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/,
+                                    message: "Please enter valid E-mail",
+                                  },
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="Enter Email ID"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </>
+                      )}
+
+                      {state.groupId == "KCB" && (
+                        <>
+                          <Col md={12}>
+                            <div className="">
+                              <label className="form-label">Relationship</label>
+                              <Form.Item
+                                className="form-item"
+                                name="relationship"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please select Relationship.",
+                                  },
+                                ]}
+                              >
+                                <Select
+                                  size="large"
+                                  className="w-100"
+                                  placeholder="Select Relationship"
+                                  showSearch
+                                  onChange={(v) => {
+                                    let value = JSON.parse(v);
+                                    setState({
+                                      relationshipValue:
+                                        value.relationshipValue,
+                                      relationshipDesc: value.relationshipDesc,
+                                    });
+                                  }}
+                                >
+                                  {state.relationshipLists.map((list, i) => {
+                                    return (
+                                      <Option
+                                        key={i}
+                                        value={JSON.stringify(list)}
+                                      >
+                                        {list.relationshipDesc}
+                                      </Option>
+                                    );
+                                  })}
+                                </Select>
+                              </Form.Item>
+                            </div>
+                          </Col>
+
+                          <Col md={12}>
+                            <div className="">
+                              <label className="form-label">Address 1</label>
+                              <Form.Item
+                                className="form-item"
+                                name="address1"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Address 1.",
+                                  },
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="Enter Address 1"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+
+                          <Col md={12}>
+                            <div className="">
+                              <label className="form-label">Address 2</label>
+                              <Form.Item
+                                className="form-item"
+                                name="address2"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please input your Address 2.",
+                                  },
+                                ]}
+                              >
+                                <Input
+                                  size="large"
+                                  placeholder="Enter Address 2"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </>
+                      )}
+                      <Col md={6}>
+                        <div className="">
+                          <label className="form-label">Zipcode</label>
+                          <Form.Item
+                            className="form-item"
+                            name="zipcode"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please input your Zipcode.",
+                              },
+                              ...inputValidations.zipCode(
+                                AuthReducer.recvCountryCode
+                              ),
+                            ]}
+                          >
+                            <Input size="large" placeholder="Enter Zipcode" />
+                          </Form.Item>
+                        </div>
+                      </Col>
+
+                      {/* {
+                                                            state.groupId != "KCB" && */}
+                      <Col md={6}>
+                        <div className="">
+                          <label className="form-label">Nationality</label>
+                          <Form.Item
+                            className="form-item"
+                            name="nationality"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please select your Nationality.",
+                              },
+                            ]}
+                          >
+                            <Select
+                              size="large"
+                              className="w-100"
+                              placeholder="Select Nationality"
+                              showSearch
+                              // onChange={onChangeNationality}
+                            >
+                              {state.nationalities.map((nationality, i) => {
+                                return (
+                                  <Option
+                                    key={i}
+                                    value={nationality.countryCode}
+                                  >
+                                    {nationality.nationality}
+                                  </Option>
+                                );
+                              })}
+                            </Select>
+                          </Form.Item>
+                        </div>
+                      </Col>
+                      {/* } */}
+                      <Col md={6}>
+                        <div className="">
+                          <label className="form-label">City</label>
+                          <Form.Item
+                            className="form-item"
+                            name="city"
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please select your City.",
+                              },
+                            ]}
+                          >
+                            <Select
+                              size="large"
+                              className="w-100"
+                              placeholder="Select City"
+                              showSearch
+                            >
+                              {state.stateCities.map((city, i) => {
+                                return (
+                                  <Option key={i} value={city.city}>
+                                    {city.city}
+                                  </Option>
+                                );
+                              })}
+                            </Select>
+                          </Form.Item>
+                        </div>
+                      </Col>
+
+                      {state.groupId == "KCB" && (
+                        <>
+                          <Col md={6}>
+                            <div className="">
+                              <label className="form-label">State</label>
+                              <Form.Item
+                                className="form-item"
+                                name="state"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Please select your State.",
+                                  },
+                                ]}
+                              >
+                                <Select
+                                  size="large"
+                                  className="w-100"
+                                  placeholder="Select State"
+                                  showSearch
+                                >
+                                  {state.stateLists.map((state, i) => {
+                                    return (
+                                      <Option key={i} value={state.stateCode}>
+                                        {state.state}
+                                      </Option>
+                                    );
+                                  })}
+                                </Select>
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          <Col md={12}>
+                            <div className="">
+                              <label className="form-label">Country</label>
+                              <Form.Item className="form-item" name="country">
+                                <Input
+                                  readOnly
+                                  size="large"
+                                  placeholder="Enter Country"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </>
+                      )}
+
+                      <Col md={12}>
+                        <div className="d-flex justify-content-end">
+                          <button
+                            className="btn btn-secondary btn-sm me-3 my-3"
+                            onClick={() => {
+                              if (state.redirectPage === "NEW_TRANSACTION") {
+                                navigate("/new-transaction", {
+                                  state: state.redirectPageState,
+                                });
+                              } else {
+                                navigate("/my-recipient");
+                              }
+                            }}
+                          >
+                            Back
+                          </button>
+                          <button
+                            className="btn btn-primary text-white btn-sm my-3"
+                            type="submit"
+                            onClick={() => setIsICICI(false)}
+                          >
+                            Review
+                          </button>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Form>
+                </div>
+              </Col>
+            </Row>
+          ) : (
+            <Row>
+              <div className="bg-white shadow-sm rounded p-4 mb-4">
+                <h3 className="text-5 fw-400 d-flex align-items-center mb-4">
+                  Recipient's Details
+                  <a
+                    href="#!"
+                    className="ms-auto text-2 text-uppercase btn-link"
+                    onClick={() => setState({ showConfirmAddRecipient: false })}
+                  >
+                    <span className="me-1">
+                      <PencilSquare />
+                    </span>
+                    Edit
+                  </a>
+                </h3>
+                <div></div>
+                <hr className="mx-n4 mb-4" />
+
+                <div className="row gx-3 align-items-center">
+                  <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                    Name:
+                  </p>
+                  <p className="col-sm-9 text-3">
+                    {state.formData.firstName || state.editData.firstName}{" "}
+                    {state.formData.lastName || state.editData.lastName}
+                  </p>
+                </div>
+
+                {/* <div className="row gx-3 align-items-center">
+                  <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                    Last Name:
+                  </p>
+                  <p className="col-sm-9 text-3">
+                    {state.formData.lastName || state.editData.lastName}
+                  </p>
+                </div> */}
+
+                {/* {isICICI == false && (
+                  <div className="row gx-3 align-items-center">
+                    <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                      IFSC Code:
+                    </p>
+                    <p className="col-sm-9 text-3">{state.formData.IFSCCode}</p>
+                  </div>
+                )} */}
+                {isICICI == false && state.deliveryOption === "DC" && (
+                  <div className="row gx-3 align-items-center">
+                    <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                      Bank Code:
+                    </p>
+                    <p className="col-sm-9 text-3">{state.bankCode}</p>
+                  </div>
+                )}
+
+                <div className="row gx-3 align-items-center">
+                  <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                    {state.deliveryOption === "VOOMA"
+                      ? "Mobile Number (VOOMA Wallet) :"
+                      : "Account Number: "}
+                  </p>
+                  <p className="col-sm-9 text-3">
+                    {state.formData.accountNo || state.editData.accountNo}
+                  </p>
+                </div>
+
+                <div className="row gx-3 align-items-center">
+                  <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                    Nationality:
+                  </p>
+                  <p className="col-sm-9 text-3">
+                    {state.formData.nationality || state.editData.nationality}
+                  </p>
+                </div>
+
+                <div className="row gx-3 align-items-center">
+                  <p className="col-sm-3 text-muted text-sm-end mb-0 mb-sm-3">
+                    City:
+                  </p>
+                  <p className="col-sm-9 text-3">
+                    {state.formData.city || state.editData.city}
+                  </p>
+                </div>
+
+                <div className="d-flex justify-content-end">
+                  {/* <Link to={'/'} className="btn btn-secondary me-3">Back</Link> */}
+                  <button
+                    className="btn btn-secondary btn-sm me-3 my-3"
+                    type="button"
+                    onClick={() => setState({ showConfirmAddRecipient: false })}
+                  >
+                    Back
+                  </button>
+
+                  <button
+                    className="btn btn-primary text-white btn-sm my-3"
+                    type="button"
+                    onClick={onClickConfirmAddRecipientAndSendOTP}
+                  >
+                    Confirm Recipient
+                  </button>
+                </div>
+              </div>
+            </Row>
+          )}
+        </Spin>
+      </div>
+    </div>
+  );
+}
