@@ -1,0 +1,358 @@
+import React, { useEffect, useReducer, useState } from "react";
+import Main from "../Layouts/Main";
+import BackArrow from "../../../assets/images/click2remit/Back_arrow.svg";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { validateEmailId } from "../../../services/validations/email";
+import { Form, Input, Select, notification } from "antd";
+import FloatInput from "../../../reusable/FloatInput";
+import CustomInput from "../../../reusable/CustomInput";
+import { inputValidations } from "../../../services/validations/validations";
+import { ProfileAPI } from "../../../apis/ProfileAPI";
+import useHttp from "../../../hooks/useHttp";
+import Spinner from "../../../reusable/Spinner";
+import { GuestAPI } from "../../../apis/GuestAPI";
+import Swal from "sweetalert2";
+const Feedback = () => {
+  const location = useLocation();
+  const [form] = Form.useForm();
+  const { TextArea } = Input;
+  const { Option } = Select;
+
+  const navigate = useNavigate();
+  const AuthReducer = useSelector((state) => state.user);
+  const [loader, setLoader] = useState(0);
+
+  const [state, setState] = useReducer((state, newState) => ({ ...state, ...newState }), {
+    selectOpt: "",
+    phoneCodes: [],
+  });
+
+  const hookGetProfile = useHttp(ProfileAPI.getProfile);
+  const hookFeedbackPreLogin = useHttp(GuestAPI.contactUsPreLogin);
+  const hookFeedbackPostLogin = useHttp(GuestAPI.contactUsPostLogin);
+  const hookGetCountryPhoneCodes = useHttp(GuestAPI.getCountryPhoneCodes);
+
+  useEffect(() => {
+    if (AuthReducer.isLoggedIn) {
+      getProfile();
+    }
+    getCoutryCodes();
+  }, []);
+  const getProfile = () => {
+    let payload = {
+      // requestType: "LEAD",
+      requestType: "USERPROFILE",
+      userId: AuthReducer.userID,
+    };
+    setLoader((prevState) => prevState + 1);
+    hookGetProfile.sendRequest(payload, function (data) {
+      setLoader((prevState) => prevState - 1);
+      if (data.status == "S") {
+        form.setFieldsValue({
+          name: `${data.firstName} ${data.middleName} ${data.lastName}`,
+          phoneNo: data.mobileNo,
+          mobileCountryCode: data.mobilePhoneCode,
+          email: data.emailId,
+        });
+      } else {
+        notification.error({
+          message: data.errorMessage ? data.errorMessage : "Get Profile failed.",
+        });
+      }
+    });
+  };
+  const submitHandlerPre = (value) => {
+    let payload = {
+      requestType: "PRECONTACTUS",
+      category: state.selectOpt === "Others" ? value.otherCategory : value.category,
+      fullName: value.name,
+      mobilePhoneCode: value.mobileCountryCode,
+      mobileNo: value.phoneNo,
+      emailId: value.email,
+      comments: value.feedbackDesc.trim().replace("'", ""),
+      // rating: rating,
+      pageFrom: "PRE",
+      identifier: "FB",
+    };
+    setLoader((prevState) => prevState + 1);
+    hookFeedbackPreLogin.sendRequest(payload, function (data) {
+      setLoader((prevState) => prevState - 1);
+      if (data.status === "S") {
+        Swal.fire({
+          title: "Success",
+          text: "We have recorded your valuable concern/feedback. Our team will try resolving/working on it and our support team will revert you back on your email.",
+          icon: "success",
+          confirmButtonColor: "#2dbe60",
+          allowOutsideClick: false,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/new-transaction");
+          }
+        });
+      } else {
+        notification.error({ message: data.errorMessage });
+        let errors = [];
+        data.errorList.forEach((error, i) => {
+          let errorData = {
+            name: error.field,
+            errors: [error.error],
+          };
+          errors.push(errorData);
+        });
+        if (errors.length > 0) form.setFields(errors);
+      }
+    });
+  };
+  const submitHandlerPost = (value) => {
+    let payload = {
+      requestType: "POSTCONTACTUS",
+      category: state.selectOpt === "Others" ? value.otherCategory : value.category,
+      fullName: value.name,
+      mobilePhoneCode: value.mobileCountryCode,
+      mobileNo: value.phoneNo,
+      emailId: value.email,
+      comments: value.feedbackDesc.trim().replace("'", ""),
+      // rating: rating,
+      pageFrom: "POST",
+      identifier: "FB",
+      userId: AuthReducer.userID,
+    };
+    setLoader((prevState) => prevState + 1);
+    hookFeedbackPostLogin.sendRequest(payload, function (data) {
+      setLoader((prevState) => prevState - 1);
+      if (data.status === "S") {
+        Swal.fire({
+          title: "Success",
+          text: "We have recorded your valuable concern/feedback. Our team will try resolving/working on it and our support team will revert you back on your email.",
+          icon: "success",
+          confirmButtonColor: "#2dbe60",
+          allowOutsideClick: false,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/new-transaction");
+          }
+        });
+      } else {
+        notification.error({ message: data.errorMessage });
+      }
+    });
+  };
+  const getCoutryCodes = async () => {
+    const payload = {
+      requestType: "COUNTRYPHONECODE",
+    };
+    setLoader((prevState) => prevState + 1);
+    hookGetCountryPhoneCodes.sendRequest(payload, function (data) {
+      setLoader((prevState) => prevState - 1);
+      if (data.status == "S") {
+        setState({
+          phoneCodes: [
+            { countryPhoneCode: 1, countryName: "United States" },
+            { countryPhoneCode: 91, countryName: "India" },
+          ],
+        });
+      }
+    });
+  };
+  return (
+    <Main sidebar={location?.state?.sidebar}>
+      <div className="container h-100">
+        <div className="row h-100 justify-content-center">
+          <Spinner spinning={loader === 0 ? false : true}>
+            <Form
+              form={form}
+              onFinish={(value) => {
+                AuthReducer.isLoggedIn ? submitHandlerPost(value) : submitHandlerPre(value);
+              }}
+            >
+              <div
+                className={`align-self-center col-lg-7 col-md-7 col-sm-12  ${
+                  AuthReducer.isLoggedIn ? "" : "mx-auto"
+                } `}
+                style={{ marginRight: "auto" }}
+              >
+                <div
+                  className={`CR-default-box ${
+                    AuthReducer.isLoggedIn ? "CR-max-width-620" : "ContactUs"
+                  }`}
+                >
+                  <ul className="row CR-side-space">
+                    <li className="back-arrow-nav d-xs-block d-done">
+                      <img src={BackArrow} alt="" />
+                    </li>
+
+                    <li className="col-md-12 col-sm-12 col-lg-12 my-2">
+                      <h4 className="text-black CR-font-28 mb-1">Feedback</h4>
+                    </li>
+                    <li className="col-md-12 col-sm-12 col-lg-12">
+                      <CustomInput
+                        showLabel={false}
+                        name="name"
+                        label="Name"
+                        validationRules={[
+                          {
+                            pattern: /^([\w]{1,})+\s+([\w\s]{1,})+$/i,
+                            message: "Please enter valid name.",
+                          },
+                          {
+                            pattern: /^([^0-9]*)$/,
+                            message: "Number not allow in name",
+                          },
+                        ]}
+                        min={3}
+                        max={50}
+                        required
+                      >
+                        <FloatInput placeholder="Name"></FloatInput>
+                      </CustomInput>
+                    </li>
+                    <li className="col-md-12 col-sm-12 col-lg-12 ">
+                      <CustomInput
+                        showLabel={false}
+                        name="email"
+                        label="Email Address"
+                        validationRules={[
+                          ({ getFieldValue }) => ({
+                            validator(rule, value) {
+                              let message = "";
+                              let obj = validateEmailId(value ? value : "");
+                              message = obj.message;
+                              if (obj.status === "S") {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(message);
+                            },
+                          }),
+                        ]}
+                      >
+                        <FloatInput
+                          placeholder="Email Address"
+                          // reference={emailRef}
+                          // onChange={(e) => setState({ emailId: e.target.value })}
+                          // onFocus={() => setState({ disabledSignin: true })}
+                        />
+                      </CustomInput>
+                    </li>
+                    <li className="col-md-12 col-sm-12 col-lg-12 ">
+                      <div className="row d-flex">
+                        <div className="col-5">
+                          <CustomInput
+                            showLabel={false}
+                            name="mobileCountryCode"
+                            label="Select Phone Code"
+                            required
+                          >
+                            <FloatInput
+                              type="select"
+                              placeholder="Phone Code"
+                              label="Phone Code"
+                              name="mobileCountryCode"
+                              // disabled={state.mobileNoInp}
+                              required
+                              //  size="small"
+                              showSearch
+                              // value={selectValue}
+                              onChange={(e) => {
+                                setState({ mobilePhoneCode: e });
+                              }}
+                            >
+                              {state.phoneCodes.map((phoneCode, i) => {
+                                return (
+                                  <Option
+                                    key={i}
+                                    value={phoneCode.countryPhoneCode}
+                                  >{`(${phoneCode.countryPhoneCode}) ${phoneCode.countryName}`}</Option>
+                                );
+                              })}
+                            </FloatInput>
+                          </CustomInput>
+                        </div>
+                        <div className="col-7">
+                          <CustomInput
+                            showLabel={false}
+                            name="phoneNo"
+                            label="Phone Number"
+                            validationRules={[
+                              {
+                                pattern: /^[1-9]\d*$/,
+                                message: "Phone number should not start with 0",
+                              },
+                              ...inputValidations.mobileNumber(),
+                            ]}
+                            required
+                          >
+                            <FloatInput type="text" placeholder="Phone Number" />
+                          </CustomInput>
+                        </div>
+                      </div>
+                    </li>
+                    <li className="col-md-12 col-sm-12 col-lg-12">
+                      <CustomInput showLabel={false} name={"category"} label="category" required>
+                        <FloatInput
+                          type="select"
+                          placeholder="Select Category"
+                          onChange={(e) => {
+                            setState({ selectOpt: e });
+                          }}
+                        >
+                          <Option value="Registration">Registration</Option>
+                          <Option value="Sign In">Sign In</Option>
+                          <Option value="Beneficiary related (Addition/Deletion/ Modification)">
+                            Beneficiary related (Addition/Deletion/ Modification)
+                          </Option>
+                          <Option value="Remitter Related">
+                            Remitter Related (Addition/Deletion)
+                          </Option>
+                          <Option value="Transactions">Transactions</Option>
+                          <Option value="KYC">KYC</Option>
+                          <Option value="Profile details">Profile details</Option>
+                          <Option value="Others">Others</Option>
+                        </FloatInput>
+                      </CustomInput>
+                    </li>
+                    {/* <li className="col-md-12 col-sm-12 col-lg-12 my-2"> */}
+                    {state.selectOpt === "Others" && (
+                      <div>
+                        <CustomInput showLabel={false} name="otherCategory" label="Other" required>
+                          <FloatInput placeholder="Other"></FloatInput>
+                        </CustomInput>
+                      </div>
+                    )}
+                    {/* </li> */}
+                    <li className="col-md-12 col-sm-12 col-lg-12 my-2">
+                      <CustomInput showLabel={false} name="feedbackDesc" label="Feedback" required>
+                        <TextArea placeholder="Type your feedback." rows={5}></TextArea>
+                      </CustomInput>
+                    </li>
+                    <li className="col-md-12 col-sm-12 col-lg-12 mb-2 text-center">
+                      <button
+                        style={{ maxWidth: "17rem" }}
+                        htmlType="submit"
+                        class="CR-primary-btn"
+                      >
+                        Submit{" "}
+                      </button>
+                    </li>
+                  </ul>
+                  {AuthReducer.isLoggedIn && (
+                    <div className="bottom_panel">
+                      <div className="d-flex justify-content-between align-items-baseline">
+                        <span className="Back_arrow" onClick={() => navigate("/new-transaction")}>
+                          <img src={BackArrow} alt="" />
+                          Back
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Form>
+          </Spinner>
+        </div>
+      </div>
+    </Main>
+  );
+};
+
+export default Feedback;
