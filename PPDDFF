@@ -1,0 +1,544 @@
+import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import c2r_logo_r from "../../../../../assets/images/click2remit/c2r-logo-r.png";
+import receipt_background from "../../../../../assets/images/click2remit/receipt_background.png";
+import footerRecipts from "../../../../../assets/images/click2remit/footerReceipt.png";
+import facebookRecpt from "../../../../../assets/images/click2remit/facebookRecpt.png";
+import twitterRecpt from "../../../../../assets/images/click2remit/twitterRecpt.png";
+import trustwave_certificate from "../../../../../assets/images/click2remit/trustwave-certificate.png";
+import digicert_certificate from "../../../../../assets/images/click2remit/digicert-certificate.png";
+
+import moment from "moment";
+
+export default function PDFFile(props) {
+  //   Font.register({ family: "avenir Helvetica Arial sans-serif", format: "truetype", src: Opensans });
+  //   Font.register({ family: "Open sans bold", format: "truetype", src: Opensansbold });
+  //   Font.register({ family: "Open sans med", format: "truetype", src: Opensansmedium });
+
+  //   const data = props?.txnReceiptDetail;
+  //   let sendCountry = data?.sendCountry?.split("-");
+  //   let recvCountry = data?.recvCountry?.split("-");
+  //   let sendCountryCode = sendCountry[0];
+  //   let sendCurrencyCode = sendCountry[1];
+  //   let recvCountryCode = recvCountry[0];
+  //   let recvCurrencyCode = recvCountry[1];
+  const styles = StyleSheet.create({
+    //myycss
+    conatainer: {
+      //   position: "absolute",
+      //   marginTop: "-2000px",
+      height: "100%",
+      width: "100%",
+      //   backgroundColor: "red",
+    },
+    innerContainer: {
+      //   fontFamily: '"avenir", Helvetica, Arial, sans-serif',
+      height: "100%",
+      lineHeight: "1.5",
+      padding: "0",
+      margin: "0",
+      background: "#ECECEE",
+      margin: "20px",
+    },
+    table: {
+      background: "#ffffff",
+      borderCollapse: "collapse",
+      borderBottom: "5px solid #ffffff",
+      height: "100%",
+      margin: "0 auto",
+      maxWidth: "600px",
+      width: "100%",
+    },
+    strong: {
+      fontWeight: "bold",
+    },
+    paragraph: {
+      padding: "0",
+      margin: "0",
+      // color: "#5ab94f",
+    },
+    imgContainer: {
+      height: "100px",
+      backgroundColor: "#ECECEE",
+      border: "none",
+      //   width: "100%",
+      padding: "25px 1px",
+    },
+    logo: {
+      display: "block",
+      textAlign: "center",
+      height: "350px",
+      //   width: "100%",
+    },
+    greetingContainer: {
+      backgroundColor: "#ffe0e2",
+      opacity: 0.7,
+      fontWeight: "ultrabold",
+      // backgroundColor: "transparent linear-gradient(288deg,#f73636,#f79498) 0 0 no-repeat padding-box ",
+
+      border: "none",
+      //   width: "100%",
+      padding: "15px 51px 15px",
+      color: "#331114",
+      fontSize: "14px",
+      lineHeight: "1.5",
+      height: "75px",
+    },
+    txnheader: {
+      backgroundColor: "#f85153",
+      border: "none",
+      //   width: "100%",
+      padding: "10px 51px",
+      color: "#ffffff",
+      fontSize: "14px",
+      lineHeight: "1.5",
+      //   height: "10px",
+    },
+    txnDetailsContainer: {
+      backgroundColor: "#ececed",
+      border: "none",
+      //   width: "100%",
+      padding: "15px 51px",
+      color: "#331114",
+      fontSize: "14px",
+      lineHeight: "2px",
+
+      height: "350px",
+    },
+    txnHeading: {
+      margin: "0 0 5px",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      color: "#0c5fa3",
+      fontSize: "18px",
+    },
+    dataDefination: {
+      color: "#0c5fa3",
+    },
+    marginTop20: {
+      marginTop: 20,
+    },
+    trackTxnContainer: {
+      position: "relative",
+      display: "inline-block",
+      marginBottom: "10px",
+      backgroundColor: "#f8f8f8",
+      border: "none",
+      width: "100%",
+      padding: "15px 51px",
+      color: "#77777a",
+      fontSize: 14,
+      backgroundSize: "cover",
+      backgroundRepeat: "no-repeat",
+      lineHeight: "1.5",
+      height: "250px",
+    },
+    trackTxnInnerContainer: {
+      borderCollapse: "collapse",
+      height: "100%",
+      margin: "0 auto",
+      maxWidth: 600,
+      width: "100%",
+      verticalAlign: "top",
+    },
+    trackTxntd: {
+      width: "100%",
+      backgroundColor: "transparent",
+      color: "#ffffff",
+      lineHeight: "1.5",
+      fontSize: 20,
+      fontWeight: "bold",
+    },
+    divTxnTrackBtn: {
+      backgroundColor: "#0c5fa3",
+      borderRadius: 6,
+      color: "#ffffff",
+      textAlign: "center",
+      padding: 20,
+      fontSize: 20,
+      fontWeight: "bold",
+      letterSpacing: 1,
+      margin: "0 auto",
+    },
+    backgroundImage: {
+      position: "absolute",
+      top: 20,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: 0.5, // Set the desired opacity
+      height: "100%",
+    },
+    overlay: {
+      position: "absolute",
+      width: "100%",
+      top: 1,
+      left: 1,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center", // Add this line to center the text vertically
+    },
+    overlayBox: {
+      position: "absolute",
+      width: "100%",
+      top: "25%",
+      // top: 0,
+      left: 0,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      // gap: "10px", // Adjust the gap value as needed
+    },
+    whiteBox: {
+      // backgroundColor: "white",
+      width: "auto",
+      height: "100px",
+      borderRadius: "6px",
+      marginTop: "20px",
+    },
+    centerFlexRed: {
+      backgroundColor: "red",
+    },
+    heightTrackTxn: {
+      // height: "20px",
+      padding: 8,
+    },
+
+    centerFlex: {
+      borderRadius: 6,
+      textAlign: "center",
+      width: "70%",
+
+      color: "white",
+      fontWeight: "bold",
+      text: "center",
+      alignItems: "center", // Add this line to center the text vertically
+    },
+    text: {
+      margin: 12,
+      fontSize: 14,
+      textAlign: "justify",
+      padding: "10px 51px",
+      // fontFamily: "AntonFamily",
+    },
+    footerContainer: {
+      display: "flex",
+      flexDirection: "row",
+
+      justifyContent: "space-between",
+      // backgroundColor: "#5ab94f",
+      backgroundColor: "#477232",
+      color: "#ffffff",
+      width: "100%",
+      height: "20%",
+      padding: 10,
+    },
+
+    cols: {
+      // flex: 1,
+      // height: "100%",
+    },
+
+    colText: {
+      color: "#ffffff",
+      fontSize: 14,
+      marginTop: 10,
+    },
+    // linkContainer: {
+    //   // height: "5%",
+    //   // lineHeight: "15px",
+    //   marginTop: 10,
+    //   marginBottom: 10, // Add bottom margin for spacing
+    // },
+    linkTags: {
+      textDecoration: "none", // Hide underline for links
+      color: "#ffffff",
+      lineHeight: "150%",
+      padding: "10px",
+    },
+    footerImg: {
+      width: "100px",
+      height: "100px",
+    },
+    clouserText: {
+      color: "#331114",
+      fontSize: "14px",
+      lineHeight: "1.5",
+    },
+
+    container: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+    },
+    column: {
+      width: "48%",
+      padding: 10,
+      backgroundColor: "white",
+    },
+    column2: {
+      marginLeft: "4%",
+      width: "48%",
+      padding: 10,
+      backgroundColor: "white",
+    },
+    // marginRight10: {
+    //   marginRight: "4px",
+    // },
+    //page3
+    containerF: {
+      width: 100,
+    },
+    rowF: {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
+    columnF: {
+      width: "auto" /* Adjust the width as needed */,
+      backgroundColor: "#477232",
+      padding: 10,
+      boxSizing: "border-box",
+    },
+    footerImages: {
+      width: "60px",
+    },
+  });
+  //try
+
+  return (
+    <Document>
+      <Page>
+        <View style={styles.conatainer}>
+          <View style={styles.innerContainer}>
+            <View style={styles.table}>
+              <View style={styles.imgContainer}>
+                <Image src={c2r_logo_r} style={styles.logo}></Image>
+              </View>
+              <View style={styles.greetingContainer}>
+                <Text style={styles.paragraph}>Dear Roshan,</Text>
+                <Text style={styles.strong}>Thank you for sending money with Viamericas.</Text>
+              </View>
+              <View style={styles.txnheader}>
+                <Text style={[styles.paragraph, styles.strong]}>Transaction NO.: KTM3443334</Text>
+              </View>
+              <View style={styles.txnDetailsContainer}>
+                <Text style={styles.txnHeading}>Transaction Details</Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Transaction Date:
+                  <Text style={styles.dataDefination}>24/11/1999</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Funds Available on:
+                  <Text style={styles.dataDefination}>24/11/1999</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Payer Network:<Text style={styles.dataDefination}>Kotak Mahindra Bank Ltd.</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Folio Number:<Text style={styles.dataDefination}>KTM3443334</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}></Text>
+                <Text style={[styles.paragraph, styles.strong]}></Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Transfer Amount:<Text style={styles.dataDefination}>24 USD</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Transfer Fees:<Text style={styles.dataDefination}>5.00</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  Transfer Taxes:<Text style={styles.dataDefination}>4.00</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong, styles.marginTop20]}>
+                  <Text style={{ margin: 0, padding: 0, fontSize: 16, fontWeight: "bold" }}>
+                    Total Cost:
+                  </Text>
+                  <Text style={styles.dataDefination}>9.00</Text>
+                </Text>
+              </View>
+              <View>
+                <Text style={[styles.dataDefination]}>Exchange Rate: 1 usd=84 INR</Text>
+                <Text style={[styles.paragraph, styles.strong]}>
+                  <Text style={{ margin: 0, padding: 0, fontSize: 16, fontWeight: "bold" }}>
+                    Transfer Amount:
+                  </Text>
+                  <Text style={styles.dataDefination}>6,4500.24 INR</Text>
+                </Text>
+                <Text style={[styles.paragraph, styles.strong]}>
+                  <Text style={{ margin: 0, padding: 0, fontSize: 16, fontWeight: "bold" }}>
+                    Transfer Amount to Recipient:
+                  </Text>
+                  <Text style={styles.dataDefination}>6,4500.24 INR</Text>
+                </Text>
+              </View>
+              <View style={styles.trackTxnContainer}>
+                <View style={styles.backgroundImage}>
+                  <Image src={receipt_background}></Image>
+
+                  <View style={styles.overlayBox}>
+                    <View style={styles.whiteBox}>
+                      <View style={[styles.container, styles.centerFlex]}>
+                        <View style={styles.column}>
+                          <Text style={styles.dataDefination}>Recipient Information</Text>
+                          {"\n"}
+                          <Text>ramdas peth nagpur</Text>
+                          {"\n"}
+                          <Text>ramdas peth nagpur</Text>
+                        </View>
+                        <View style={styles.column2}>
+                          <Text style={styles.dataDefination}>Sender Information</Text>
+                          {"\n"}
+                          <Text>ramdas peth nagpur</Text>
+                          {"\n"}
+                          <Text>ramdas peth nagpur</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={[styles.overlay, styles.marginTop20]}>
+                    <View style={[styles.heightTrackTxn, styles.centerFlexRed, styles.centerFlex]}>
+                      <Text style={{ fontColor: "white", fontWeight: "bold" }}>
+                        Track your transaction
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* <View style={styles.trackTxnContainer}>
+                <View style={styles.trackTxnInnerContainer}>
+                  <View style={styles.trackTxntd}>
+                    <View style={styles.divTxnTrackBtn}></View>
+                  </View>
+                </View>
+              </View> */}
+            </View>
+          </View>
+        </View>
+      </Page>
+      <Page>
+        <Text style={styles.text}>
+          *Recipient Lorem, ipsum dolor sit amet consectetur adipisicing elit. Voluptate repellat
+          blanditiis tempora est odio consectetur fuga officiis nulla veritatis ipsam, provident
+          tempore quo nostrum harum, adipisci et. Earum laboriosam temporibus vitae soluta ducimus
+          eaque eum. Minima praesentium dolorum eum neque doloribus iure est, iste fugit? Lorem,
+          ipsum dolor sit amet consectetur adipisicing elit. Voluptate repellat blanditiis tempora
+          est odio consectetur fuga officiis nulla veritatis ipsam, provident tempore quo nostrum
+          harum, adipisci et. Earum laboriosam temporibus vitae soluta ducimus eaque eum. Minima
+          praesentium dolorum eum neque doloribus iure est, iste fugit? Lorem, ipsum dolor sit amet
+          consectetur adipisicing elit. Voluptate repellat blanditiis tempora est odio consectetur
+          fuga officiis nulla veritatis ipsam, provident tempore quo nostrum harum, adipisci et.
+          Earum laboriosam temporibus{" "}
+          <Link style={{ textDecoration: "none" }}>www.viamericas.com</Link> vitae soluta ducimus
+          eaque eum. Minima praesentium dolorum eum neque doloribus iure est, iste fugit? Lorem,
+          ipsum dolor sit amet consectetur adipisicing elit. Voluptate repellat blanditiis tempora
+          est odio consectetur fuga officiis nulla veritatis ipsam, provident tempore quo nostrum
+          harum, adipisci et. Earum laboriosam temporibus vitae soluta ducimus eaque eum. Minima
+          praesentium dolorum eum neque doloribus iure est, iste fugit? Lorem, ipsum dolor sit amet
+          consectetur adipisicing elit. Voluptate repellat blanditiis tempora est odio consectetur
+          fuga officiis nulla veritatis ipsam, provident tempore quo nostrum harum, adipisci et.
+          Earum laboriosam temporibus vitae soluta ducimus eaque eum. Minima praesentium dolorum eum
+          neque doloribus iure est, iste fugit? Lorem, ipsum dolor sit amet consectetur adipisicing
+          elit. Voluptate repellat blanditiis tempora est odio consectetur fuga officiis nulla
+          veritatis ipsam, provident tempore quo nostrum harum, adipisci et. Earum laboriosam
+          temporibus vitae <Link style={{ textDecoration: "none" }}>www.viamericas.com</Link> soluta
+          ducimus eaque eum. Minima praesentium dolorum eum neque doloribus iure est, iste fugit?
+          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Voluptate repellat blanditiis
+          tempora est odio consectetur fuga officiis nulla veritatis ipsam, provident tempore quo
+          nostrum harum, adipisci et. Earum laboriosam temporibus vitae soluta ducimus eaque eum.
+          Minima praesentium dolorum eum neque doloribus iure est, iste fugit?neque doloribus iure
+          est, iste fugit? Lorem, ipsum dolor sit amet consectetur adipisicing elit. Voluptate
+          repellat blanditiis tempora est odio consectetur fuga officiis nulla veritatis ipsam,
+          provident tempore quo nostrum harum, adipisci et. Earum laboriosam temporibus vitae{" "}
+          <Link style={{ textDecoration: "none" }}>www.viamericas.com</Link> soluta ducimus eaque
+          eum. Minima praesentium dolorum eum neque doloribus iure est, iste fugit? Lorem, ipsum
+          dolor sit amet consectetur adipisicing elit. Voluptate repellat blanditiis tempora est
+          odio consectetur fuga officiis nulla veritatis ipsam
+        </Text>
+        <View style={[styles.footerContainer, styles.text]}>
+          <View style={styles.cols}>
+            <Text style={styles.colText}>
+              <Link style={styles.linkTags} src="https://www.govianex.com/#!/about-us">
+                About Us
+              </Link>
+            </Text>
+            {"\n"}
+            <Text style={styles.colText}>
+              <Link style={styles.linkTags} src="https://www.govianex.com/#!/contact-us">
+                Contact Us
+              </Link>
+            </Text>
+            {"\n"}
+            <Text style={styles.colText}>
+              <Link
+                style={styles.linkTags}
+                src="https://corporate.viamericas.com/file-a-complaint/"
+              >
+                Complaince
+              </Link>
+            </Text>
+          </View>
+          <View style={styles.cols}>
+            <Text style={styles.colText}>
+              <Link
+                style={styles.linkTags}
+                src="https://www.govianex.com/api/legal-documents/privacy-policies/latest/content"
+              >
+                Privacy Policy{" "}
+              </Link>
+            </Text>
+            {"\n"}
+            <Text style={styles.colText}>
+              <Link style={styles.linkTags} src="https://www.govianex.com/#!/file-complaint">
+                File Link Complaint
+              </Link>
+            </Text>
+            {"\n"}
+            <Text style={styles.colText}>
+              <Link
+                style={styles.linkTags}
+                src="https://www.govianex.com/api/legal-documents/terms-and-conditions/latest/content"
+              >
+                Terms and Conditions
+              </Link>
+            </Text>
+          </View>
+          <View style={styles.cols}>
+            <View style={styles.containerF}>
+              <View style={styles.rowF}>
+                <View style={styles.columnF}>
+                  <Text>
+                    <Link style={styles.linkTags} src="https://www.facebook.com/ViamericasDigital">
+                      <Image style={styles.footerImages} src={facebookRecpt}></Image>
+                    </Link>
+                  </Text>
+                </View>
+                <View style={styles.columnF}>
+                  <Text>
+                    <Link style={styles.linkTags} src="https://twitter.com/Viamericas">
+                      <Image style={styles.footerImages} src={twitterRecpt}></Image>
+                    </Link>
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.rowF}>
+                <View style={styles.columnF}>
+                  <Text>
+                    <Image style={styles.footerImages} src={digicert_certificate}></Image>
+                  </Text>
+                </View>
+                <View style={styles.columnF}>
+                  <Text>
+                    <Image style={styles.footerImages} src={trustwave_certificate}></Image>
+                  </Text>
+                </View>
+              </View>
+            </View>{" "}
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+//done
+//
