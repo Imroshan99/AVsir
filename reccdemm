@@ -1,0 +1,33 @@
+<PDFDownloadLink
+                            document={<PDFFile txnReceiptDetail={state.txnReceiptDetail} />}
+                            fileName={`${state.txnReceiptDetail.txnRefNumber}.pdf`}
+                          >
+                            {({ blob, url, loading, error }) =>
+                              loading ? "Loading document..." : "Download now!"
+                            }
+                          </PDFDownloadLink>
+
+
+
+clic2Thak
+
+<PDFDownloadLink
+                        document={<PDFFile txnReceiptDetail={txnReceiptDetail} />}
+                        fileName={`${txnReceiptDetail.txnRefNumber}.pdf`}
+
+                      >
+                        {({ loading }) =>
+                          loading ? (
+                            <span>loading....</span>
+                          ) : (
+                            <img
+                              // onClick={downloadPdf}
+                              style={{ cursor: "pointer" }}
+                              width={23}
+                              height={23}
+                              src={downloadBtn}
+                              alt="download-btn"
+                            />
+                          )
+                        }
+                      </PDFDownloadLink>
